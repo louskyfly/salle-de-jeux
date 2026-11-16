@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Salle de jeux">
+<meta name="theme-color" content="#120d2b">
+<meta name="format-detection" content="telephone=no">
+<title>Salle de jeux</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="img/favicon-64.png">
+<style>
+:root{
+  --bg1:#0d0a22; --bg2:#1d1250; --ink:#f5f3ff; --mute:#b8b0e0; --acc:#a78bfa;
+  --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px);
+  --sal:env(safe-area-inset-left,0px); --sar:env(safe-area-inset-right,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg1);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Rounded","Segoe UI",Roboto,system-ui,sans-serif;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overscroll-behavior:none;touch-action:manipulation}
+button{font:inherit;color:inherit}
+
+/* ---------- Accueil ---------- */
+#home{position:fixed;inset:0;display:flex;flex-direction:column;
+  padding:calc(18px + var(--sat)) calc(28px + var(--sar)) calc(16px + var(--sab)) calc(28px + var(--sal));
+  background:radial-gradient(120% 90% at 15% 0%,#3b1f8f 0%,transparent 55%),
+             radial-gradient(90% 80% at 100% 100%,#7a1f6e 0%,transparent 55%),
+             linear-gradient(160deg,var(--bg2),var(--bg1));}
+#stars{position:absolute;inset:0;pointer-events:none;opacity:.7}
+header{position:relative;display:flex;align-items:center;gap:14px}
+header img{width:46px;height:46px;border-radius:12px;box-shadow:0 6px 18px #0007}
+header h1{margin:0;font-size:26px;font-weight:800;letter-spacing:.3px}
+header .sub{color:var(--mute);font-size:14px;margin-top:2px}
+header .clock{margin-left:auto;text-align:right;font-variant-numeric:tabular-nums}
+header .clock b{display:block;font-size:26px;font-weight:700}
+header .clock span{display:block;color:var(--mute);font-size:13px}header .clock span::first-letter{text-transform:uppercase}
+
+#shelf{position:relative;flex:1;-webkit-mask-image:linear-gradient(90deg,#000 92%,transparent);mask-image:linear-gradient(90deg,#000 92%,transparent);display:flex;align-items:center;gap:22px;overflow-x:auto;overflow-y:hidden;
+  scroll-snap-type:x mandatory;padding:18px 6px 22px;margin:0 -6px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+#shelf::-webkit-scrollbar{display:none}
+.tile{flex:0 0 auto;width:min(320px,29vw);min-width:240px;scroll-snap-align:center;border:0;padding:0;text-align:left;cursor:pointer;
+  border-radius:24px;background:#1a1440;overflow:hidden;position:relative;
+  box-shadow:0 14px 34px #0009, inset 0 0 0 1px #ffffff14;transition:transform .18s ease, box-shadow .18s ease}
+.tile:focus{outline:none}
+.tile:focus-visible,.tile.sel{transform:translateY(-6px) scale(1.03);box-shadow:0 20px 44px #000a,0 0 0 4px var(--c,#a78bfa)}
+.tile:active{transform:scale(.97)}
+.tile .shot{height:min(220px,28vh);min-height:130px;background-size:cover;background-position:center;position:relative}
+.tile .shot::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,#1a1440 100%)}
+.tile .ico{position:absolute;left:16px;top:calc(min(220px,28vh) - 40px);width:64px;height:64px;border-radius:16px;z-index:2;
+  box-shadow:0 8px 20px #000a;background:#111 center/cover no-repeat;border:2px solid #ffffff30}
+.tile .txt{padding:30px 18px 18px}
+.tile h2{margin:0 0 6px;font-size:21px;font-weight:800}
+.tile p{margin:0;font-size:14px;line-height:1.35;color:var(--mute);min-height:3.9em}
+.tile .meta{display:flex;align-items:center;justify-content:space-between;margin-top:14px;gap:8px}
+.tile .tag{font-size:12px;color:#d9d3ff;background:#ffffff14;border-radius:99px;padding:4px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .play{font-size:14px;font-weight:800;background:var(--c,#a78bfa);color:#140c30;border-radius:99px;padding:7px 16px;white-space:nowrap}
+.tile .live{position:absolute;right:12px;top:12px;z-index:2;font-size:12px;font-weight:700;background:#22c55e;color:#062;border-radius:99px;padding:4px 10px;display:none}
+.tile.running .live{display:block}
+
+footer{position:relative;display:flex;justify-content:space-between;align-items:center;color:var(--mute);font-size:13px;gap:10px}
+footer .hint{opacity:.85}
+#installTip{display:none}
+
+/* ---------- Jeu ---------- */
+#stage{position:fixed;inset:0;background:#000;display:none}
+#stage.on{display:block}
+#stage iframe{position:absolute;border:0;display:none;background:#000;
+  top:var(--sat);left:var(--sal);width:calc(100% - var(--sal) - var(--sar));height:calc(100% - var(--sat) - var(--sab))}
+#stage iframe.cur{display:block}
+#loading{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+  background:#0d0a22;pointer-events:none;transition:opacity .35s}
+#loading img{width:96px;height:96px;border-radius:22px;box-shadow:0 10px 30px #000a;animation:pulse 1.2s ease-in-out infinite}
+#loading.gone{opacity:0}
+@keyframes pulse{50%{transform:scale(.92);opacity:.8}}
+
+#menuBtn{position:fixed;z-index:50;width:44px;height:44px;border-radius:50%;border:1px solid #ffffff40;
+  background:rgba(20,14,48,.42);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  display:none;align-items:center;justify-content:center;opacity:.55;touch-action:none;cursor:grab;transition:opacity .2s}
+#menuBtn.on{display:flex}
+#menuBtn:active,#menuBtn.drag{opacity:.95}
+#menuBtn svg{width:22px;height:22px}
+
+#sheet{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:#05031099;
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+#sheet.on{display:flex}
+#sheet .box{width:min(380px,90vw);background:#1b1442;border-radius:24px;padding:22px;box-shadow:0 20px 60px #000c;border:1px solid #ffffff1a}
+#sheet .head{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+#sheet .head img{width:48px;height:48px;border-radius:12px}
+#sheet .head b{font-size:19px}
+#sheet .head span{display:block;color:var(--mute);font-size:13px}
+#sheet button{display:flex;align-items:center;gap:10px;width:100%;border:0;border-radius:14px;padding:14px 16px;margin-top:8px;
+  font-size:16px;font-weight:700;background:#ffffff12;cursor:pointer;text-align:left}
+#sheet button.main{background:var(--acc);color:#140c30}
+#sheet button:active{transform:scale(.98)}
+</style>
+</head>
+<body>
+<section id="home" aria-label="Accueil">
+  <canvas id="stars"></canvas>
+  <header>
+    <img src="apple-touch-icon.png" alt="">
+    <div><h1>Salle de jeux</h1><div class="sub">Choisis un jeu</div></div>
+    <div class="clock"><b id="hh">--:--</b><span id="dd"></span></div>
+  </header>
+  <div id="shelf" role="list"></div>
+  <footer>
+    <span class="hint" id="hint">Touche une tuile pour jouer · bouton ☰ pour revenir ici</span>
+    <span id="installTip">Pour le plein écran : Partager › Sur l'écran d'accueil</span>
+  </footer>
+</section>
+
+<section id="stage" aria-label="Jeu">
+  <div id="loading"><img id="loadIco" alt=""><div id="loadTxt">Chargement…</div></div>
+</section>
+
+<button id="menuBtn" aria-label="Menu" title="Menu (glisse pour déplacer)">
+  <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+</button>
+
+<div id="sheet" role="dialog" aria-modal="true">
+  <div class="box">
+    <div class="head"><img id="shIco" alt=""><div><b id="shName"></b><span>Jeu en pause</span></div></div>
+    <button class="main" id="bResume">▶&nbsp; Continuer à jouer</button>
+    <button id="bHome">🏠&nbsp; Retour à l'accueil</button>
+    <button id="bReload">↻&nbsp; Relancer le jeu</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+const GAMES = [
+  { id:'vol-libre', name:'Vol libre', url:'/vol-libre/', icon:'/vol-libre/apple-touch-icon.png', shot:'img/vol-libre.jpg',
+    desc:'Pilote avions et voitures sur un grand archipel : courses d’anneaux, combats aériens, rallye.', tag:'Simulateur', c:'#38bdf8' },
+  { id:'base-spatiale', name:'Base spatiale', url:'/base-spatiale/', icon:'/base-spatiale/apple-touch-icon.png', shot:'img/base-spatiale.jpg',
+    desc:'Petit robot sur une planète inconnue : mine, construis ta base, survis la nuit, répare la fusée.', tag:'Survie · pixel art', c:'#f59e0b' },
+  { id:'defense-robots', name:'Défense robots', url:'/defense-robots/', icon:'/defense-robots/apple-touch-icon.png', shot:'img/defense-robots.jpg',
+    desc:'Pose et améliore tes tours pour stopper les vagues de robots avant qu’ils n’atteignent le dôme.', tag:'Tower defense 3D', c:'#f87171' },
+  { id:'city', name:'City Builder', url:'/city/', icon:'/city/icon.svg', shot:'img/city.jpg',
+    desc:'Bâtis ta ville du petit village à la mégapole : budget, énergie, eau, transports et bonheur.', tag:'Construction de ville', c:'#4ade80' },
+  { id:'cluedo', name:'Détective', url:'/cluedo/', icon:'/cluedo/icons/icon.svg', shot:'img/cluedo.jpg',
+    desc:'Dossiers confidentiels : explore les lieux, interroge les témoins et démasque le coupable.', tag:'Enquête', c:'#d4b06a' },
+];
+const LS = 'salledejeux.v1';
+const store = (() => { try { return JSON.parse(localStorage.getItem(LS)) || {}; } catch (e) { return {}; } })();
+store.last = store.last || {}; store.btn = store.btn || {};
+const save = () => { try { localStorage.setItem(LS, JSON.stringify(store)); } catch (e) {} };
+const $ = s => document.querySelector(s);
+const home = $('#home'), stage = $('#stage'), shelf = $('#shelf'), menuBtn = $('#menuBtn'), sheet = $('#sheet'), loading = $('#loading');
+const frames = {};          // id -> iframe (le jeu en cours reste chargé)
+let current = null;         // id du jeu affiché
+let sel = 0;
+
+/* ---------- Tuiles ---------- */
+function ago(t){
+  if(!t) return '';
+  const m = Math.round((Date.now()-t)/60000);
+  if(m<1) return 'à l’instant'; if(m<60) return 'il y a '+m+' min';
+  const h = Math.round(m/60); if(h<24) return 'il y a '+h+' h';
+  const d = Math.round(h/24); return d===1 ? 'hier' : 'il y a '+d+' j';
+}
+function renderTiles(){
+  shelf.innerHTML='';
+  GAMES.forEach((g,i)=>{
+    const b=document.createElement('button');
+    b.className='tile'+(frames[g.id]?' running':''); b.setAttribute('role','listitem'); b.dataset.id=g.id; b.style.setProperty('--c',g.c);
+    const last = store.last[g.id];
+    b.innerHTML=`<div class="shot" style="background-image:url('${g.shot}')"></div>
+      <div class="ico" style="background-image:url('${g.icon}')"></div><span class="live">En cours</span>
+      <div class="txt"><h2>${g.name}</h2><p>${g.desc}</p>
+      <div class="meta"><span class="tag">${last?'Joué '+ago(last):g.tag}</span><span class="play">${frames[g.id]?'Reprendre':'Jouer'}</span></div></div>`;
+    b.addEventListener('click',()=>openGame(g.id));
+    b.addEventListener('focus',()=>{sel=i;});
+    shelf.appendChild(b);
+  });
+}
+
+/* ---------- Ouvrir / fermer un jeu ---------- */
+function openGame(id, fromHistory){
+  const g = GAMES.find(x=>x.id===id); if(!g) return;
+  // un seul jeu gardé en mémoire à la fois (iPad : mémoire limitée)
+  for(const k in frames){ if(k!==id){ frames[k].remove(); delete frames[k]; } }
+  current=id; store.last[id]=Date.now(); save();
+  home.style.display='none'; stage.classList.add('on'); placeMenuBtn(); menuBtn.classList.add('on');
+  let f=frames[id];
+  if(!f){
+    f=document.createElement('iframe');
+    f.title=g.name;
+    f.allow='fullscreen; autoplay; gamepad; accelerometer; gyroscope; screen-wake-lock';
+    f.setAttribute('allowfullscreen','');
+    $('#loadIco').src=g.icon; $('#loadTxt').textContent='Chargement de '+g.name+'…';
+    loading.classList.remove('gone'); stage.appendChild(loading);
+    f.addEventListener('load',()=>{ hookFrame(f); setTimeout(()=>loading.classList.add('gone'),250); focusGame(); });
+    f.src=g.url;
+    stage.insertBefore(f,loading);
+    frames[id]=f;
+  } else { loading.classList.add('gone'); pauseGame(id,false); }
+  Object.values(frames).forEach(x=>x.classList.toggle('cur',x===f));
+  focusGame();
+  if(!fromHistory && location.hash!=='#'+id) history.pushState({g:id},'','#'+id);
+}
+/* Pause d'un jeu caché : on retient ses requestAnimationFrame (même origine) et on lui
+   signale qu'il est masqué, ce qui déclenche aussi sa sauvegarde automatique. */
+function hookFrame(f){
+  try{
+    const w=f.contentWindow, doc=f.contentDocument;
+    if(!w || w.__sdj) return;
+    const orig=w.requestAnimationFrame.bind(w); let paused=false, q=[];
+    w.requestAnimationFrame=cb=>{ if(paused){ q.push(cb); return 0; } return orig(cb); };
+    const realHidden=()=>document.hidden;
+    Object.defineProperty(doc,'hidden',{configurable:true,get:()=>paused||realHidden()});
+    Object.defineProperty(doc,'visibilityState',{configurable:true,get:()=>(paused||realHidden())?'hidden':'visible'});
+    w.__sdj={ set(v){ if(v===paused) return; paused=v;
+      try{ doc.dispatchEvent(new Event('visibilitychange')); }catch(e){}
+      if(!v){ const c=q; q=[]; c.forEach(cb=>orig(cb)); } } };
+  }catch(e){}
+}
+function pauseGame(id,v){ const f=frames[id]; try{ f && f.contentWindow && f.contentWindow.__sdj && f.contentWindow.__sdj.set(v); }catch(e){} }
+function focusGame(){ const f=frames[current]; if(!f) return; try{ f.focus(); f.contentWindow && f.contentWindow.focus(); }catch(e){} }
+function goHome(fromHistory){
+  closeSheet(false);
+  if(current) pauseGame(current,true);
+  current=null; stage.classList.remove('on'); menuBtn.classList.remove('on'); home.style.display='';
+  renderTiles();
+  const t=shelf.children[sel]; t&&t.focus({preventScroll:false});
+  if(!fromHistory && location.hash) history.pushState({},'',location.pathname);
+}
+function reloadGame(){
+  const f=frames[current]; if(!f) return; closeSheet(false);
+  loading.classList.remove('gone'); f.src=GAMES.find(g=>g.id===current).url;
+}
+addEventListener('popstate',()=>{
+  const id=location.hash.slice(1);
+  if(GAMES.some(g=>g.id===id)) openGame(id,true); else if(current) goHome(true);
+});
+
+/* ---------- Feuille « Menu » ---------- */
+function openSheet(){
+  const g=GAMES.find(x=>x.id===current); if(!g) return;
+  $('#shIco').src=g.icon; $('#shName').textContent=g.name; sheet.classList.add('on'); pauseGame(current,true); $('#bResume').focus();
+}
+function closeSheet(refocus=true){ sheet.classList.remove('on'); if(refocus){ pauseGame(current,false); focusGame(); } }
+$('#bResume').onclick=()=>closeSheet();
+$('#bHome').onclick=()=>goHome();
+$('#bReload').onclick=reloadGame;
+sheet.addEventListener('click',e=>{ if(e.target===sheet) closeSheet(); });
+
+/* ---------- Bouton Menu déplaçable ---------- */
+function placeMenuBtn(){
+  const p=store.btn[current] || {x:.5,y:0};
+  const w=innerWidth, h=innerHeight, s=44, m=6;
+  const x=Math.min(Math.max(p.x*w - s/2, m), w-s-m);
+  const y=Math.min(Math.max(p.y*h, m), h-s-m);
+  menuBtn.style.left=x+'px'; menuBtn.style.top=Math.max(y, m)+'px';
+  if(!store.btn[current]) menuBtn.style.top='calc(6px + env(safe-area-inset-top,0px))';
+}
+(function(){
+  let sx,sy,ox,oy,moved=false,id=null;
+  menuBtn.addEventListener('pointerdown',e=>{
+    id=e.pointerId; menuBtn.setPointerCapture(id); moved=false;
+    const r=menuBtn.getBoundingClientRect(); sx=e.clientX; sy=e.clientY; ox=r.left; oy=r.top; e.preventDefault();
+  });
+  menuBtn.addEventListener('pointermove',e=>{
+    if(e.pointerId!==id) return;
+    const dx=e.clientX-sx, dy=e.clientY-sy;
+    if(!moved && Math.hypot(dx,dy)<8) return;
+    moved=true; menuBtn.classList.add('drag');
+    const x=Math.min(Math.max(ox+dx,4),innerWidth-48), y=Math.min(Math.max(oy+dy,4),innerHeight-48);
+    menuBtn.style.left=x+'px'; menuBtn.style.top=y+'px';
+  });
+  const end=e=>{
+    if(e.pointerId!==id) return; id=null; menuBtn.classList.remove('drag');
+    if(moved){ const r=menuBtn.getBoundingClientRect(); store.btn[current]={x:(r.left+22)/innerWidth,y:r.top/innerHeight}; save(); focusGame(); }
+    else if(e.type==='pointerup') openSheet();
+  };
+  menuBtn.addEventListener('pointerup',end); menuBtn.addEventListener('pointercancel',end);
+  menuBtn.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); openSheet(); } });
+})();
+addEventListener('resize',()=>{ if(current) placeMenuBtn(); });
+
+/* ---------- Clavier / manette sur l'accueil ---------- */
+addEventListener('keydown',e=>{
+  if(sheet.classList.contains('on')){ if(e.key==='Escape') closeSheet(); return; }
+  if(current) return;
+  if(e.key==='ArrowRight'||e.key==='ArrowLeft'){
+    sel=(sel+(e.key==='ArrowRight'?1:-1)+GAMES.length)%GAMES.length;
+    shelf.children[sel].focus(); shelf.children[sel].scrollIntoView({inline:'center',behavior:'smooth',block:'nearest'}); e.preventDefault();
+  }
+});
+let padPrev={};
+function pollPad(){
+  const pads=navigator.getGamepads?navigator.getGamepads():[];
+  const p=pads&&[...pads].find(Boolean);
+  if(p&&!current){
+    const bt=i=>p.buttons[i]&&p.buttons[i].pressed;
+    const ax=p.axes[0]||0;
+    const now={r:bt(15)||ax>.6,l:bt(14)||ax<-.6,a:bt(0)};
+    if(now.r&&!padPrev.r) dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight'}));
+    if(now.l&&!padPrev.l) dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowLeft'}));
+    if(now.a&&!padPrev.a) openGame(GAMES[sel].id);
+    padPrev=now;
+  }
+  requestAnimationFrame(pollPad);
+}
+addEventListener('gamepadconnected',()=>{ padPrev={}; requestAnimationFrame(pollPad); },{once:true});
+
+/* ---------- Horloge, étoiles, astuce d'installation ---------- */
+function tick(){
+  const d=new Date();
+  $('#hh').textContent=d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  $('#dd').textContent=d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+}
+tick(); setInterval(tick,15000);
+(function stars(){
+  const c=$('#stars'), x=c.getContext('2d'); const dpr=Math.min(devicePixelRatio||1,2);
+  function draw(){
+    c.width=innerWidth*dpr; c.height=innerHeight*dpr; c.style.width=innerWidth+'px'; c.style.height=innerHeight+'px';
+    let s=12345; const r=()=>(s=(s*16807)%2147483647)/2147483647;
+    for(let i=0;i<140;i++){ x.globalAlpha=.25+r()*.6; x.fillStyle='#fff'; const R=(r()*1.4+.4)*dpr; x.beginPath(); x.arc(r()*c.width,r()*c.height,R,0,7); x.fill(); }
+  }
+  draw(); addEventListener('resize',draw);
+})();
+const standalone = matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches || navigator.standalone;
+if(!standalone && /iPad|iPhone|Macintosh/.test(navigator.userAgent) && 'ontouchend' in document){ $('#installTip').style.display='inline'; }
+
+/* ---------- Démarrage ---------- */
+renderTiles();
+const start=location.hash.slice(1);
+if(GAMES.some(g=>g.id===start)) openGame(start,true);
+else setTimeout(()=>shelf.children[0]&&shelf.children[0].focus({preventScroll:true}),50);
+document.addEventListener('gesturestart',e=>e.preventDefault());
+</script>
+</body>
+</html>
